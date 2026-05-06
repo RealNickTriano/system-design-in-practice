@@ -2,6 +2,7 @@ package dev.nicktriano.bitly.url;
 
 import java.time.Instant;
 
+import org.hibernate.validator.constraints.URL;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -20,6 +21,7 @@ public class UrlEntity {
   @Id
   private String shortCode;
 
+  @URL
   @Column(nullable = false, columnDefinition = "TEXT")
   private String originalUrl;
 
