@@ -6,6 +6,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import dev.nicktriano.bitly.url.dto.ShortenUrlRequestBody;
 import dev.nicktriano.bitly.url.dto.ShortenUrlResponse;
 
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -30,7 +31,7 @@ public class UrlController {
   }
 
   @PostMapping("/urls")
-  public ShortenUrlResponse shortenUrl(@RequestBody ShortenUrlRequestBody body) {
+  public ShortenUrlResponse shortenUrl(@Valid @RequestBody ShortenUrlRequestBody body) {
     String originalUrl = body.url();
     Optional<String> alias = Optional.ofNullable(body.alias());
     Optional<Instant> expiration = Optional.ofNullable(body.expiration());
