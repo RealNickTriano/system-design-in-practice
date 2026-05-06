@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,13 +53,21 @@ public class UrlController {
   }
 
   @ExceptionHandler(UrlNotFoundException.class)
-  public ResponseEntity<Void> handleNotFound() {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+  public ResponseEntity<ProblemDetail> handleNotFound(UrlNotFoundException e) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage()));
   }
 
   @ExceptionHandler(UrlExpiredException.class)
-  public ResponseEntity<Void> handleExpired() {
-    return ResponseEntity.status(HttpStatus.GONE).build();
+  public ResponseEntity<ProblemDetail> handleExpired(UrlExpiredException e) {
+    return ResponseEntity.status(HttpStatus.GONE)
+        .body(ProblemDetail.forStatusAndDetail(HttpStatus.GONE, e.getMessage()));
+  }
+
+  @ExceptionHandler(ShortCodeGenerationException.class)
+  public ResponseEntity<ProblemDetail> handleCodeGenerationFailure(ShortCodeGenerationException e) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
   }
 
 }
