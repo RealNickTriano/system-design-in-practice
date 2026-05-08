@@ -25,11 +25,21 @@ class UrlServiceTest {
 
     @Test
     void shortenAndSaveUrl_withAlias_usesAlias() {
+        when(urlRepository.existsById("myalias")).thenReturn(false);
         when(urlRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         UrlEntity result = urlService.shortenAndSaveUrl("https://example.com", Optional.of("myalias"), Optional.empty());
 
         assertThat(result.getShortCode()).isEqualTo("myalias");
+    }
+
+    @Test
+    void shortenAndSaveUrl_withDuplicateAlias_throwsAliasConflictException() {
+        when(urlRepository.existsById("taken")).thenReturn(true);
+
+        assertThatThrownBy(() -> urlService.shortenAndSaveUrl("https://example.com", Optional.of("taken"), Optional.empty()))
+            .isInstanceOf(AliasConflictException.class);
+        verify(urlRepository, never()).save(any());
     }
 
     @Test

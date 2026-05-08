@@ -111,6 +111,34 @@ class UrlControllerTest {
     }
 
     @Test
+    void postUrls_duplicateAlias_returns409WithProblemDetail() throws Exception {
+        when(urlService.shortenAndSaveUrl(anyString(), any(), any())).thenThrow(new AliasConflictException("taken"));
+
+        mockMvc.perform(post("/urls")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"url\":\"https://example.com\",\"alias\":\"taken\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value(containsString("taken")));
+    }
+
+    @Test
+    void postUrls_aliasWithSpace_returns400WithValidationMessage() throws Exception {
+        mockMvc.perform(post("/urls")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"url\":\"https://example.com\",\"alias\":\"my alias\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.detail").value(containsString("letters, numbers, hyphens")));
+    }
+
+    @Test
+    void postUrls_aliasWithSpecialChars_returns400() throws Exception {
+        mockMvc.perform(post("/urls")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"url\":\"https://example.com\",\"alias\":\"my@alias!\"}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void postUrls_codeGenerationFailure_returns500WithProblemDetail() throws Exception {
         when(urlService.shortenAndSaveUrl(anyString(), any(), any())).thenThrow(new ShortCodeGenerationException());
 
