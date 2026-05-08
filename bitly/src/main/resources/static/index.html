@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>shorten/</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='Courier New,monospace'>/</text></svg>" />
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -218,6 +219,15 @@
           }, 2000);
         });
       });
+
+      navigator.clipboard.writeText(shortUrl).then(() => {
+        copyBtn.textContent = '[copied]';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = '[copy]';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {});
 
       form.reset();
       document.getElementById('url').focus();
