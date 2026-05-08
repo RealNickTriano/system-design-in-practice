@@ -244,10 +244,13 @@
       resultDiv.classList.add('visible');
     }
 
-    fetch('/meta').then(r => r.json()).then(({ region, az }) => {
-      const el = document.getElementById('awsMeta');
-      if (region) el.textContent = ' · ' + (az || region);
-    }).catch(() => {});
+    if (window.location.host != "localhost:8080") {
+      fetch('/meta/info').then(r => r.json()).then(({ region, az }) => {
+        const el = document.getElementById('awsMeta');
+        if (region) el.textContent = ' · ' + (az || region);
+      }).catch(() => {});
+    }
+    
 
     function showError(message) {
       const p = document.createElement('span');
