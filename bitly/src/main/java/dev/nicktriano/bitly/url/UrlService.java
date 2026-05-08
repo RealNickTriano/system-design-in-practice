@@ -31,7 +31,11 @@ public class UrlService {
     Instant expirationValue = expiration.orElse(null);
 
     if (alias.isPresent()) {
-      return urlRepository.save(new UrlEntity(alias.get(), originalUrl, expirationValue));
+      String aliasValue = alias.get();
+      if (urlRepository.existsById(aliasValue)) {
+        throw new AliasConflictException(aliasValue);
+      }
+      return urlRepository.save(new UrlEntity(aliasValue, originalUrl, expirationValue));
     }
 
     int attempts = 0;
