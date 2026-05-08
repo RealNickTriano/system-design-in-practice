@@ -156,7 +156,7 @@
     </form>
     <div class="result" id="result"></div>
   </div>
-  <footer>Built with Spring Boot<span id="awsMeta"></span></footer>
+  <footer>Built with Spring Boot</footer>
 
   <script>
     const form = document.getElementById('form');
@@ -243,11 +243,6 @@
 
       resultDiv.classList.add('visible');
     }
-
-    fetch('/meta').then(r => r.json()).then(({ region, az }) => {
-      const el = document.getElementById('awsMeta');
-      if (region) el.textContent = ' · ' + (az || region);
-    }).catch(() => {});
 
     function showError(message) {
       const p = document.createElement('span');
