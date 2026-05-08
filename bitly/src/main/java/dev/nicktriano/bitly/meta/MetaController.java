@@ -12,7 +12,7 @@ public class MetaController {
     this.metaService = metaService;
   }
 
-  @GetMapping("/meta/info")
+  @GetMapping("/meta")
   public MetaInfo getMeta() {
     return metaService.getMetaInfo();
   }
