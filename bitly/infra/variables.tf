@@ -21,3 +21,7 @@ variable "db_name" {
 variable "db_username" {
   default = "shortenuser"
 }
+
+variable "image_tag" {
+  type = string
+}

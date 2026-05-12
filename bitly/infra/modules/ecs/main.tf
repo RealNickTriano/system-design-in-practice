@@ -36,7 +36,7 @@ resource "aws_iam_role_policy" "ecs_secrets" {
     Statement = [{
       Effect   = "Allow"
       Action   = "secretsmanager:GetSecretValue"
-      Resource = aws_secretsmanager_secret.db.arn
+      Resource = var.db_secret_arn
     }]
   })
 }
@@ -53,7 +53,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([{
     name  = var.app_name
-    image = "${aws_ecr_repository.app.repository_url}:latest"
+    image = var.image_url
 
     portMappings = [{
       containerPort = 8080
@@ -62,17 +62,17 @@ resource "aws_ecs_task_definition" "app" {
 
     environment = [{
       name  = "DB_URL"
-      value = "jdbc:postgresql://${aws_db_instance.main.endpoint}/${var.db_name}"
+      value = var.db_url
     }]
 
     secrets = [
       {
         name      = "DB_USERNAME"
-        valueFrom = "${aws_secretsmanager_secret.db.arn}:username::"
+        valueFrom = "${var.db_secret_arn}:username::"
       },
       {
         name      = "DB_PASSWORD"
-        valueFrom = "${aws_secretsmanager_secret.db.arn}:password::"
+        valueFrom = "${var.db_secret_arn}:password::"
       }
     ]
 
@@ -93,21 +93,19 @@ resource "aws_ecs_service" "app" {
   name            = var.app_name
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = 1
+  desired_count   = 2
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = aws_subnet.private[*].id
-    security_groups = [aws_security_group.ecs.id]
+    subnets         = var.subnet_ids
+    security_groups = [var.security_group_id]
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.app.arn
+    target_group_arn = var.target_group_arn
     container_name   = var.app_name
     container_port   = 8080
   }
 
   health_check_grace_period_seconds = 90
-
-  depends_on = [aws_lb_listener.https]
 }
