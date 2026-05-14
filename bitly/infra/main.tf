@@ -48,8 +48,8 @@ module "dns" {
   domain                    = var.domain
   certificate_arn           = module.acm.certificate_arn
   domain_validation_options = module.acm.domain_validation_options
-  alias_dns_name            = module.api_gateway.domain_name
-  alias_zone_id             = module.api_gateway.hosted_zone_id
+  alias_dns_name            = module.alb.dns_name
+  alias_zone_id             = module.alb.zone_id
 }
 
 # ── Load balancer ─────────────────────────────────────────────────────────────
@@ -59,21 +59,9 @@ module "alb" {
 
   app_name          = var.app_name
   vpc_id            = module.vpc.vpc_id
-  subnet_ids        = module.vpc.private_subnet_ids
+  subnet_ids        = module.vpc.public_subnet_ids
   security_group_id = module.vpc.alb_security_group_id
-}
-
-# ── API Gateway ───────────────────────────────────────────────────────────────
-
-module "api_gateway" {
-  source = "./modules/api_gateway"
-
-  app_name           = var.app_name
-  domain             = var.domain
-  certificate_arn    = module.dns.validated_certificate_arn
-  subnet_ids         = module.vpc.private_subnet_ids
-  security_group_ids = [module.vpc.vpc_link_security_group_id]
-  alb_listener_arn   = module.alb.listener_arn
+  certificate_arn   = module.acm.certificate_arn
 }
 
 # ── Database ──────────────────────────────────────────────────────────────────

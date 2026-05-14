@@ -13,3 +13,7 @@ variable "subnet_ids" {
 variable "security_group_id" {
   type = string
 }
+
+variable "certificate_arn" {
+  type = string
+}

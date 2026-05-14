@@ -13,7 +13,17 @@ resource "aws_vpc" "main" {
   tags = { Name = var.app_name }
 }
 
-# ── Subnets ──────────────────────────────────────────────────────────────────
+# ── Subnets ───────────────────────────────────────────────────────────────────
+
+resource "aws_subnet" "public" {
+  count                   = 2
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.${count.index + 10}.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  map_public_ip_on_launch = true
+
+  tags = { Name = "${var.app_name}-public-${count.index}" }
+}
 
 resource "aws_subnet" "private" {
   count             = 2
@@ -24,25 +34,69 @@ resource "aws_subnet" "private" {
   tags = { Name = "${var.app_name}-private-${count.index}" }
 }
 
-# ── Route table ───────────────────────────────────────────────────────────────
+# ── Internet Gateway ──────────────────────────────────────────────────────────
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = var.app_name }
+}
+
+# ── NAT Gateways ──────────────────────────────────────────────────────────────
+
+resource "aws_eip" "nat" {
+  count  = 2
+  domain = "vpc"
+  tags   = { Name = "${var.app_name}-nat-${count.index}" }
+}
+
+resource "aws_nat_gateway" "main" {
+  count         = 2
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+  tags          = { Name = "${var.app_name}-${count.index}" }
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+# ── Route tables ──────────────────────────────────────────────────────────────
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "${var.app_name}-public" }
+}
+
+resource "aws_route" "public_internet" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.main.id
+}
+
+resource "aws_route_table_association" "public" {
+  count          = 2
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
 
 resource "aws_route_table" "private" {
+  count  = 2
   vpc_id = aws_vpc.main.id
-  tags   = { Name = "${var.app_name}-private" }
+  tags   = { Name = "${var.app_name}-private-${count.index}" }
+}
+
+resource "aws_route" "private_nat" {
+  count                  = 2
+  route_table_id         = aws_route_table.private[count.index].id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.main[count.index].id
 }
 
 resource "aws_route_table_association" "private" {
   count          = 2
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 # ── Security groups ───────────────────────────────────────────────────────────
-
-resource "aws_security_group" "vpc_link" {
-  name   = "${var.app_name}-vpc-link"
-  vpc_id = aws_vpc.main.id
-}
 
 resource "aws_security_group" "alb" {
   name   = "${var.app_name}-alb"
@@ -66,22 +120,22 @@ resource "aws_security_group" "vpc_endpoints" {
 
 # ── Security group rules ──────────────────────────────────────────────────────
 
-resource "aws_security_group_rule" "vpc_link_egress_alb" {
-  security_group_id        = aws_security_group.vpc_link.id
-  type                     = "egress"
-  from_port                = 80
-  to_port                  = 80
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.alb.id
+resource "aws_security_group_rule" "alb_ingress_https" {
+  security_group_id = aws_security_group.alb.id
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
 }
 
-resource "aws_security_group_rule" "alb_ingress_vpc_link" {
-  security_group_id        = aws_security_group.alb.id
-  type                     = "ingress"
-  from_port                = 80
-  to_port                  = 80
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.vpc_link.id
+resource "aws_security_group_rule" "alb_ingress_http" {
+  security_group_id = aws_security_group.alb.id
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group_rule" "alb_egress_ecs" {
@@ -153,7 +207,7 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${data.aws_region.current.region}.s3"
   vpc_endpoint_type = "Gateway"
-  route_table_ids   = [aws_route_table.private.id]
+  route_table_ids   = aws_route_table.private[*].id
 }
 
 resource "aws_vpc_endpoint" "ecr_api" {

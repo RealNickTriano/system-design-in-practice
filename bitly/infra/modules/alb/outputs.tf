@@ -6,10 +6,6 @@ output "zone_id" {
   value = aws_lb.main.zone_id
 }
 
-output "listener_arn" {
-  value = aws_lb_listener.http.arn
-}
-
 output "target_group_arn" {
   value = aws_lb_target_group.app.arn
 }

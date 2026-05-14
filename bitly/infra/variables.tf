@@ -23,5 +23,6 @@ variable "db_username" {
 }
 
 variable "image_tag" {
-  type = string
+  type    = string
+  default = "latest"
 }
