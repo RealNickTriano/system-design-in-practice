@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Optional;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -53,6 +54,7 @@ public class UrlService {
 
   }
 
+  @Cacheable("urls")
   public String getOriginalUrlFromShortCode(String shortCode) {
     return urlRepository.findById(shortCode)
         .map(url -> {
