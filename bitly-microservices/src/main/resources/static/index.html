@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>shorten/</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='Courier New,monospace'>/</text></svg>" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #fff;
+      color: #000;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      padding: 30vh 2rem 2rem;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: clamp(3rem, 10vw, 7rem);
+      font-weight: normal;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 2.5rem;
+    }
+
+    .fields {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .field-url {
+      flex: 1;
+    }
+
+    .field-small {
+      flex: 0 0 130px;
+    }
+
+    input {
+      display: block;
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid #000;
+      border-radius: 0;
+      padding: 0.3rem 0;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: #000;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    input:focus {
+      border-bottom-color: #000;
+    }
+
+    .submit {
+      flex: 0 0 auto;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.3rem 0;
+      color: #000;
+      line-height: 1;
+      transition: opacity 0.15s;
+    }
+
+    .submit:hover {
+      opacity: 0.4;
+    }
+
+    .submit:disabled {
+      opacity: 0.2;
+      cursor: default;
+    }
+
+    .result {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .result.visible {
+      display: block;
+    }
+
+    .result-url {
+      display: inline;
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: #aaa;
+      margin-left: 0.75rem;
+      padding: 0;
+      transition: color 0.15s;
+    }
+
+    .copy-btn:hover { color: #000; }
+    .copy-btn.copied { color: #000; }
+
+    .error {
+      color: #c00;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>shorten/</h1>
+    <form id="form">
+      <div class="fields">
+        <div class="field-url">
+          <input type="url" id="url" placeholder="https://" required autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field-small">
+          <input type="text" id="alias" placeholder="alias" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field-small">
+          <input type="datetime-local" id="expiration" />
+        </div>
+        <button type="submit" class="submit" id="submitBtn">→</button>
+      </div>
+    </form>
+    <div class="result" id="result"></div>
+  </div>
+  <footer>Built with Spring Boot</footer>
+
+  <script>
+    const form = document.getElementById('form');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const url = document.getElementById('url').value.trim();
+      const alias = document.getElementById('alias').value.trim();
+      const expirationInput = document.getElementById('expiration').value;
+
+      const body = { url };
+      if (alias) body.alias = alias;
+      if (expirationInput) body.expiration = new Date(expirationInput).toISOString();
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '…';
+      resultDiv.className = 'result';
+      resultDiv.replaceChildren();
+
+      try {
+        const res = await fetch('/urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.detail || 'error ' + res.status);
+        } else {
+          showSuccess(data);
+        }
+      } catch {
+        showError('network error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '→';
+      }
+    });
+
+    function showSuccess({ shortUrl, expiration }) {
+      const urlSpan = document.createElement('span');
+      urlSpan.className = 'result-url';
+      urlSpan.textContent = shortUrl;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = '[copy]';
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(shortUrl).then(() => {
+          copyBtn.textContent = '[copied]';
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.textContent = '[copy]';
+            copyBtn.classList.remove('copied');
+          }, 2000);
+        });
+      });
+
+      navigator.clipboard.writeText(shortUrl).then(() => {
+        copyBtn.textContent = '[copied]';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = '[copy]';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {});
+
+      form.reset();
+      document.getElementById('url').focus();
+      resultDiv.append(urlSpan, copyBtn);
+
+      if (expiration) {
+        const exp = document.createElement('div');
+        exp.style.color = '#aaa';
+        exp.style.marginTop = '0.4rem';
+        exp.textContent = 'expires ' + new Date(expiration).toLocaleString();
+        resultDiv.append(exp);
+      }
+
+      resultDiv.classList.add('visible');
+    }
+
+    function showError(message) {
+      const p = document.createElement('span');
+      p.className = 'error';
+      p.textContent = message;
+      resultDiv.append(p);
+      resultDiv.classList.add('visible');
+    }
+  </script>
+</body>
+</html>
