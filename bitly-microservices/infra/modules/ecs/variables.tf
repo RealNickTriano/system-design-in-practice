@@ -30,3 +30,7 @@ variable "target_group_arn" {
   type = string
 }
 
+variable "redis_host" {
+  type = string
+}
+

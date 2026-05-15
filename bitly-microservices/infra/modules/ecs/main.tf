@@ -60,10 +60,16 @@ resource "aws_ecs_task_definition" "app" {
       protocol      = "tcp"
     }]
 
-    environment = [{
-      name  = "DB_URL"
-      value = var.db_url
-    }]
+    environment = [
+      {
+        name  = "DB_URL"
+        value = var.db_url
+      },
+      {
+        name  = "REDIS_HOST"
+        value = var.redis_host
+      }
+    ]
 
     secrets = [
       {

@@ -113,6 +113,11 @@ resource "aws_security_group" "rds" {
   vpc_id = aws_vpc.main.id
 }
 
+resource "aws_security_group" "redis" {
+  name   = "${var.app_name}-redis"
+  vpc_id = aws_vpc.main.id
+}
+
 resource "aws_security_group" "vpc_endpoints" {
   name   = "${var.app_name}-vpc-endpoints"
   vpc_id = aws_vpc.main.id
@@ -188,6 +193,24 @@ resource "aws_security_group_rule" "rds_ingress_ecs" {
   type                     = "ingress"
   from_port                = 5432
   to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs.id
+}
+
+resource "aws_security_group_rule" "ecs_egress_redis" {
+  security_group_id        = aws_security_group.ecs.id
+  type                     = "egress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.redis.id
+}
+
+resource "aws_security_group_rule" "redis_ingress_ecs" {
+  security_group_id        = aws_security_group.redis.id
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.ecs.id
 }

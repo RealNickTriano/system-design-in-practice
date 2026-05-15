@@ -76,6 +76,16 @@ module "db" {
   security_group_id = module.vpc.rds_security_group_id
 }
 
+# ── Cache ─────────────────────────────────────────────────────────────────────
+
+module "redis" {
+  source = "./modules/redis"
+
+  app_name          = var.app_name
+  subnet_ids        = module.vpc.private_subnet_ids
+  security_group_id = module.vpc.redis_security_group_id
+}
+
 # ── Compute ───────────────────────────────────────────────────────────────────
 
 module "ecr" {
@@ -92,6 +102,7 @@ module "ecs" {
   image_url         = "${module.ecr.repository_url}:${var.image_tag}"
   db_url            = "jdbc:postgresql://${module.db.endpoint}/${var.db_name}"
   db_secret_arn     = module.db.secret_arn
+  redis_host        = module.redis.host
   subnet_ids        = module.vpc.private_subnet_ids
   security_group_id = module.vpc.ecs_security_group_id
   target_group_arn  = module.alb.target_group_arn
