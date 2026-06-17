@@ -49,55 +49,6 @@ The redirect read path — the hot, latency-sensitive path — is cached in Redi
 - **GitHub Actions** for CI/CD with OIDC-based AWS auth (no long-lived keys)
 - **k6** for load/stress testing the redirect path
 
-## Running locally
-
-From either `bitly/` or `bitly-microservices/`:
-
-```bash
-# Start Postgres + Redis
-docker compose up -d
-
-# Run the app (uses sensible localhost defaults from application.properties)
-./mvnw spring-boot:run
-```
-
-The app listens on `http://localhost:8080`. Try it:
-
-```bash
-# Shorten
-curl -s -X POST http://localhost:8080/urls \
-  -H 'Content-Type: application/json' \
-  -d '{"url":"https://example.com/some/long/path"}'
-
-# Resolve (follow the redirect)
-curl -i http://localhost:8080/<shortCode>
-```
-
-Configuration is environment-driven (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`,
-`REDIS_PORT`), all with localhost defaults — see each project's `application.properties`.
-
-### Run the tests
-
-```bash
-./mvnw verify
-```
-
-Tests use **Testcontainers** to spin up real Postgres and Redis, covering the controller,
-service, repository, and full integration paths.
-
-### Run in Docker
-
-```bash
-docker build -t bitly .
-docker compose up -d              # Postgres + Redis
-docker run -p 8080:8080 \
-  --network bitly_default \
-  -e DB_URL=jdbc:postgresql://db:5432/bitly \
-  -e DB_USERNAME=user \
-  -e DB_PASSWORD=password \
-  bitly
-```
-
 ## Infrastructure & deployment
 
 Each project's [`infra/`](bitly/infra/) directory holds modular Terraform (`vpc`, `alb`, `acm`,
@@ -105,10 +56,6 @@ Each project's [`infra/`](bitly/infra/) directory holds modular Terraform (`vpc`
 `main`: it runs the test suite, applies Terraform, builds and pushes the Docker image to ECR, and
 forces a new ECS deployment. AWS access uses GitHub OIDC (`github_oidc.tf`) rather than stored
 credentials.
-
-> Note: Terraform state is kept local and git-ignored (`terraform.tfstate*`). State holds resource
-> metadata and can include secrets, so it is deliberately not committed — for real multi-user use
-> it belongs in a remote backend (e.g. S3 + DynamoDB lock).
 
 ## Load testing
 
